@@ -1,173 +1,150 @@
-# Battleship — Honeycomb.io Edition
+# HNY Battleship
 
-A branded Battleship game for the **Pimoroni Tufty 2350** badge running **Badgeware (BadgeOS)** firmware.
+A single-player Battleship game for the **Pimoroni Tufty 2350** badge, built with the Badgeware (BadgeOS) firmware and the Honeycomb.io brand palette.
 
-Built with the Honeycomb.io brand palette and assets.
+Place your fleet, hunt the CPU's ships, and sink them before they sink you.
+
+Built by [Honeycomb.io](https://honeycomb.io)
 
 ---
 
-## Hardware Requirements
+## Platform
 
 | Item | Detail |
 |---|---|
-| Device | Pimoroni Tufty 2350 |
-| Firmware | Badgeware / BadgeOS |
-| Display | 320 × 240 px (HIRES mode) |
+| Hardware | Pimoroni Tufty 2350 |
+| Firmware | Badgeware (BadgeOS) |
+| Resolution | 320×240 (HIRES mode) |
 | Buttons | A · B · C (top row) · UP · DOWN (right side) |
 
-Firmware source: [github.com/pimoroni/tufty2350](https://github.com/pimoroni/tufty2350)
+Firmware repo: [github.com/pimoroni/tufty2350](https://github.com/pimoroni/tufty2350)
+
+> The game targets Badgeware's injected global API (`screen`, `color`, `rom_font`, `image`, `io`, `rect`, `mode`). It will not run under plain MicroPython or the older PicoGraphics / Tufty2040 firmware.
 
 ---
 
-## Project Structure
+## File Structure
 
 ```
-battleship/
-├── __init__.py          # App entry point — game loop & state machine
-├── game.py              # Pure logic — board, placement, firing, win check
-├── ai.py                # Hunt/target AI (checkerboard hunt + axis-lock targeting)
-├── renderer.py          # All drawing — menus, grids, status bar, overlays
-├── icon.png             # 24×24 launcher icon (HC_ORANGE hexagon)
+/system/apps/battleship/
+├── __init__.py        # App entry point — phase state machine, input handling
+├── game.py            # Pure game logic — board, placement, fire, sunk detection
+├── ai.py              # CPU AI — hunt/target algorithm, checkerboard pattern
+├── renderer.py        # All drawing code — menus, grids, overlays, popups
+├── icon.png           # 24×24 RGBA launcher icon
 └── assets/
-    ├── hc_logo_white.png        # 200×50 full horizontal logo (white)
-    └── hc_logomark_white.png    # 48×48 hexagon logomark (white)
+    ├── hc_logo_white.png       # Full wordmark   — 200×50 px, white on transparent
+    └── hc_logomark_white.png   # Hex logomark    —  48×48 px, white on transparent
 ```
 
 ---
 
-## Deployment
+## Installation
 
-### 1 — Prepare assets on your computer
-
-Resize PNGs to the exact dimensions before copying:
-
-| File | Required size |
-|---|---|
-| `assets/hc_logo_white.png` | 200 × 50 px |
-| `assets/hc_logomark_white.png` | 48 × 48 px |
-| `icon.png` | 24 × 24 px |
-
-### 2 — Copy to badge via USB mass storage
-
-1. Hold **BOOT**, tap **RESET** on the Tufty 2350 — a `Tufty2350` drive mounts on your computer.
+1. Hold **BOOT** and tap **RESET** on the Tufty 2350 — a `Tufty2350` USB drive mounts on your computer.
 2. Copy the entire `battleship/` folder into `/system/apps/` on that drive:
    ```
-   /system/apps/battleship/
+   /system/apps/battleship/__init__.py   ← must exist at this path
    ```
-3. Safely eject the drive.
-4. The app will appear in the **BadgeOS launcher** on next boot.
+3. Safely eject the drive and reboot. The app appears in the BadgeOS launcher.
+
+---
+
+## Asset Requirements
+
+| File | Dimensions | Format | Notes |
+|---|---|---|---|
+| `icon.png` | 24×24 px | RGBA PNG | BadgeOS launcher icon — HC_ORANGE flat-top hexagon with battleship silhouette |
+| `assets/hc_logo_white.png` | 200×50 px | RGBA PNG | Full wordmark, white on transparent |
+| `assets/hc_logomark_white.png` | 48×48 px | RGBA PNG | Hex logomark, white on transparent |
+
+Logo draws are guarded with `if img is not None` — missing assets do not crash the app.
 
 ---
 
 ## Controls
 
 ### Menu
+
 | Button | Action |
 |---|---|
-| UP / DOWN | Navigate options |
-| A | Confirm selection |
+| B | Start game |
 
 ### Ship Placement
-| Button | Action |
-|---|---|
-| UP / DOWN / A / B | Move cursor (up / down / left / right) |
-| C | Rotate ship (horizontal ↔ vertical) |
-| A (twice, same cell) | Confirm placement |
 
-### Battle Phase
 | Button | Action |
 |---|---|
-| UP / DOWN / A / B | Move targeting cursor |
-| C | Fire at selected cell |
+| UP / DOWN | Move cursor up / down |
+| A | Move cursor left |
+| C | Move cursor right |
+| B | Rotate ship (horizontal ↔ vertical) |
+| A + C held together | Confirm placement |
 
-### General
+Ghost preview shows the ship in **green** when placement is valid, **red** when invalid. A brief "in position" popup confirms each placement and the cursor nudges to the next row automatically.
+
+### Battle
+
 | Button | Action |
 |---|---|
-| B | Back / return to menu |
+| UP / DOWN | Move targeting cursor up / down |
+| A | Move targeting cursor left |
+| C | Move targeting cursor right |
+| B | Fire at cursor cell |
+
+A turn-result popup appears after every shot. It auto-dismisses after 2.2 seconds and the CPU fires automatically.
 
 ---
 
-## Game Modes
-
-### 1 Player — vs Computer
-- Human places ships, then battles the CPU.
-- CPU uses a **hunt/target algorithm**: checkerboard-pattern hunt, axis-locked targeting on hits.
-
-### 2 Players — Pass-and-Play
-- Both players place ships on the same device — a "look away" splash screen separates each player's turns.
-- Pass the device between battle turns.
-
----
-
-## Fleet
+## Fleet Reference
 
 | Ship | Size |
 |---|---|
-| Carrier | 5 cells |
-| Battleship | 4 cells |
-| Cruiser | 3 cells |
-| Submarine | 3 cells |
-| Destroyer | 2 cells |
+| Carrier | 5 |
+| Battleship | 4 |
+| Cruiser | 3 |
+| Submarine | 3 |
+| Destroyer | 2 |
 
 Total: **17 cells**. First player to have all 17 cells hit loses.
 
 ---
 
-## Color Palette
+## Brand Palette
 
-| Role | Name | Hex | RGB |
-|---|---|---|---|
-| Water / empty | Cobalt | `#0278CD` | (2, 120, 205) |
-| Hit / P1 accent | Tango | `#F96E10` | (249, 110, 16) |
-| Ship confirmed | Lime | `#64BA00` | (100, 186, 0) |
-| Cursor / P2 accent | Honey | `#FFB000` | (255, 176, 0) |
-| Background | Denim | `#01487B` | (1, 72, 123) |
-| Status bar | Denim darker | `#01325A` | (1, 50, 90) |
-| Ship hull | gray700 | `#59606D` | (89, 96, 109) |
+All colors are `color.rgb()` values — raw tuples are rejected by the Badgeware runtime.
 
----
-
-## Module Reference
-
-### `game.py`
-Pure logic — no display calls.
-
-```python
-init_board(board)                          # fill 100-cell list with EMPTY
-place_ship(board, r, c, length, horiz)     # returns True on success
-can_place(board, r, c, length, horiz)      # bounds + overlap check
-fire(board, r, c)                          # returns HIT or MISS
-check_win(board)                           # True when all SHIP cells are HIT
-cpu_place_all(board)                       # random valid placement for CPU
-
-# Cell state constants
-EMPTY = 0 | SHIP = 1 | HIT = 2 | MISS = 3
-```
-
-### `ai.py`
-```python
-ai_reset()                                 # reset AI state for new game
-ai_take_shot(board, shots_taken)           # returns (row, col)
-```
-
-- **HUNT mode**: fires on checkerboard pattern for maximum coverage.
-- **TARGET mode**: probes the four cardinal neighbours of a hit, locks onto the correct axis after the second hit, and walks the axis until the ship sinks.
-- On ship sunk: clears the target stack and returns to HUNT.
-
-### `renderer.py`
-```python
-set_images(logo, logomark)                 # call once at startup with loaded Images
-
-draw_menu(selected)                        # main menu (0/1/2)
-draw_instructions()                        # static instructions screen
-draw_placement(board, ship_idx, r, c, orientation)
-draw_battle(own_board, target_board, r, c, player_name)
-draw_pass_screen(message)                  # full-screen pass-device splash
-draw_victory(winner_name)                  # win screen with logo
-```
+| Token | Role | R | G | B | Hex |
+|---|---|---|---|---|---|
+| `BG_COLOR` | Screen background (Denim) | 1 | 72 | 123 | `#01487B` |
+| `HC_ORANGE` | Hits / P1 accent (Tango) | 249 | 110 | 16 | `#F96E10` |
+| `HC_GREEN` | Valid placement / player hit (Lime) | 100 | 186 | 0 | `#64BA00` |
+| `HC_BLUE` | Water / empty cells (Cobalt) | 2 | 120 | 205 | `#0278CD` |
+| `HC_YELLOW` | Cursor / UI accent (Honey) | 255 | 176 | 0 | `#FFB000` |
+| `HC_SHIP` | Ship hull (gray700) | 89 | 96 | 109 | `#59606D` |
+| `STATUS_BG` | Status bar (Denim dark) | 1 | 50 | 90 | `#01325A` |
+| `WHITE` | Body text | 255 | 255 | 255 | `#FFFFFF` |
+| `GRAY` | Dim / hint text | 150 | 150 | 150 | `#969696` |
+| `DARK_RED` | Invalid placement flash | 140 | 0 | 0 | `#8C0000` |
 
 ---
 
-## License
+## Known Limitations
 
-Internal tool — Honeycomb.io. Not for redistribution.
+- **Single-player only.** Pass-and-play 2-player mode was removed; Bluetooth badge-vs-badge is on the roadmap.
+- **No save state.** Rebooting mid-game loses all progress.
+- **No sound.** Buzzer support is not implemented.
+- **Fixed fonts.** Only `rom_font.nope` (8 px) and `rom_font.yesterday` (10 px) are available under Badgeware.
+
+---
+
+## Roadmap
+
+- [ ] **Bluetooth 2-player** — badge-vs-badge over BLE; each badge hosts one fleet, turns alternate wirelessly. Deferred pending Badgeware BLE API stabilization.
+- [ ] Difficulty levels (easy / normal / hard CPU)
+- [ ] High-score persistence via badge filesystem
+
+---
+
+## Credits
+
+Built by [Honeycomb.io](https://honeycomb.io) — Internal tool. Not for redistribution.

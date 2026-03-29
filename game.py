@@ -126,3 +126,54 @@ def cpu_place_ships(board):
             o = _lcg() % 2
             placed = place_ship(board, r, c, size, o)
             attempts += 1
+
+def cells_remaining(board):
+    """Count unhit SHIP cells still on the board."""
+    return sum(1 for v in board if v == SHIP)
+
+def check_sunk(board, r, c):
+    """
+    After a hit at (r,c), check if a complete ship was just sunk.
+    Scans horizontal then vertical runs of HITs from (r,c).
+    Returns (size, name) if sunk, or (0, "") if not.
+    """
+    for horiz in (True, False):
+        run_len = 1
+        # extend in negative direction
+        i = 1
+        end_neg_ok = True
+        while True:
+            nr = r if horiz else r - i
+            nc = c - i if horiz else c
+            if 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
+                if board[nr * BOARD_SIZE + nc] == HIT:
+                    run_len += 1
+                    i += 1
+                    continue
+                elif board[nr * BOARD_SIZE + nc] == SHIP:
+                    end_neg_ok = False  # ship continues — not sunk
+            break
+        if not end_neg_ok:
+            continue
+        # extend in positive direction
+        i = 1
+        end_pos_ok = True
+        while True:
+            nr = r if horiz else r + i
+            nc = c + i if horiz else c
+            if 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
+                if board[nr * BOARD_SIZE + nc] == HIT:
+                    run_len += 1
+                    i += 1
+                    continue
+                elif board[nr * BOARD_SIZE + nc] == SHIP:
+                    end_pos_ok = False
+            break
+        if not end_pos_ok:
+            continue
+        if run_len > 1:
+            # Match run length to a ship name
+            for idx in range(len(SHIP_SIZES)):
+                if SHIP_SIZES[idx] == run_len:
+                    return run_len, SHIP_NAMES[idx]
+    return 0, ""
